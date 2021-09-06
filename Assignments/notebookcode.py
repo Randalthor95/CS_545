@@ -448,26 +448,26 @@ print('Xtrain: ', Xtrain[:10])
 print('Ttrain: ',Ttrain[:10])
 
 
-# In[ ]:
+# In[18]:
 
 
 U, V, W, X_means, X_stds, T_means, T_stds = train(Xtrain, Ttrain, 5, 5, 100, 0.01)
 
 
-# In[ ]:
+# In[19]:
 
 
 Y = use(Xtrain, X_means, X_stds, T_means, T_stds, U, V, W)
 
 
-# In[ ]:
+# In[20]:
 
 
 plt.plot(Xtrain, Ttrain)
 plt.plot(Xtrain, Y);
 
 
-# In[ ]:
+# In[21]:
 
 
 U, V, W, X_means, X_stds, T_means, T_stds = train(Xtrain, Ttrain, 5, 5, 10000, 0.01)
@@ -491,7 +491,7 @@ plt.legend();
 # 
 # For the grading script to run correctly, you must first name this notebook as 'Lastname-A1.ipynb' with 'Lastname' being your last name, and then save this notebook.
 
-# In[ ]:
+# In[22]:
 
 
 get_ipython().run_line_magic('run', '-i A1grader.py')
@@ -503,17 +503,21 @@ get_ipython().run_line_magic('run', '-i A1grader.py')
 # from the [UCI Machine Learning Repository](http://archive.ics.uci.edu/ml/datasets.php). Pick a dataset that
 # is listed as being appropriate for regression.
 
-# I chose the following dataset:
-#     
-# I did so because...
+# I chose the Wine Quality dataset:
+# http://archive.ics.uci.edu/ml/datasets/Wine+Quality
+# 
+# I did so because it was setup for regression and because I recently visited the Finger Lakes in upstate New York, which is known for producing good wine. I had the option of either the red wine or white wine dataset within these. I chose white because the Finger Lakes are known for their Reislings.
+# 
+# I started by importing the data and getting it cleaned up. I had to play around with it to get it into a shape amenable to training and testing. I decided to take a look at residual sugar predicting quality first. I seperated this into training and test data, and ran it through the model twice. It did an ok job at predicting quality, but there didn't seem to be a huge correlation between the two to begin with. 
+# I then tried using alcohol level and after that total sulphur dioxide to predict quality. Again, both did an OK job predicting. The higher alcohol levels did seem to be a slightly better predictor of quality (I wonder why?) then any of the other predictors I tried, so fitting to this seemed to be yield a better result.
 
-# In[ ]:
+# In[23]:
 
 
 import pandas
 
 
-# In[ ]:
+# In[24]:
 
 
 data = pandas.read_csv('winequality-white.csv', delimiter=';', usecols=range(12))
@@ -521,33 +525,33 @@ data = data.dropna(axis=0)
 data.shape
 
 
-# In[ ]:
+# In[25]:
 
 
 data['residual sugar'][:10]
 
 
-# In[ ]:
+# In[26]:
 
 
 data['quality'][:10]
 
 
-# In[ ]:
+# In[27]:
 
 
 X_Wine = data['residual sugar']
 T_Wine = data['quality']
+print(X_Wine.shape)
+X = np.array(X_Wine[:100]).reshape((-1, 1))
+T = np.array(T_Wine[:100]).reshape((-1, 1))
 
-X = np.array(X_Wine).reshape((-1, 1))
-T = np.array(T_Wine).reshape((-1, 1))
 
-
-# In[ ]:
+# In[28]:
 
 
 training_fraction = 0.8
-n_rows = X.shape[0]
+n_rows = X[:100].shape[0]
 row_indices = np.arange(n_rows)
 np.random.shuffle(row_indices)
 n_train = round(n_rows * training_fraction)
@@ -563,26 +567,136 @@ print('Xtrain: ', Xtrain[:10])
 print('Ttrain: ',Ttrain[:10])
 
 
-# In[ ]:
+# In[29]:
 
 
 U, V, W, X_means, X_stds, T_means, T_stds = train(Xtrain, Ttrain, 5, 5, 100, 0.01)
 Y = use(Xtrain, X_means, X_stds, T_means, T_stds, U, V, W)
 
 
-# In[ ]:
+# In[30]:
 
 
-plt.plot(Xtrain, Ttrain)
-plt.plot(Xtrain, Y);
+plt.plot(Xtrain, Ttrain, 'o')
+plt.plot(Xtrain, Y, 'o');
 
 
-# In[ ]:
+# In[31]:
 
 
 U, V, W, X_means, X_stds, T_means, T_stds = train(Xtrain, Ttrain, 5, 5, 10000, 0.01)
 Y = use(Xtrain, X_means, X_stds, T_means, T_stds, U, V, W)
-plt.plot(Xtrain, Ttrain, label='Train')
-plt.plot(Xtrain, Y, label='Test')
+plt.plot(Xtrain, Ttrain, 'o', label='Train')
+plt.plot(Xtrain, Y, 'o', label='Test')
 plt.legend();
+
+
+# In[32]:
+
+
+X_Wine = data['alcohol']
+T_Wine = data['quality']
+print(X_Wine.shape)
+X = np.array(X_Wine[:100]).reshape((-1, 1))
+T = np.array(T_Wine[:100]).reshape((-1, 1))
+
+
+# In[33]:
+
+
+training_fraction = 0.8
+n_rows = X[:100].shape[0]
+row_indices = np.arange(n_rows)
+np.random.shuffle(row_indices)
+n_train = round(n_rows * training_fraction)
+n_test = n_rows - n_train
+
+Xtrain = X[row_indices[:n_train], :]
+Ttrain = T[row_indices[:n_train], :]
+Xtest = X[row_indices[n_train:], :]
+Ttest = T[row_indices[n_train:], :]
+
+
+# In[34]:
+
+
+U, V, W, X_means, X_stds, T_means, T_stds = train(Xtrain, Ttrain, 5, 5, 100, 0.01)
+Y = use(Xtrain, X_means, X_stds, T_means, T_stds, U, V, W)
+
+
+# In[35]:
+
+
+plt.plot(Xtrain, Ttrain, 'o')
+plt.plot(Xtrain, Y, 'o');
+
+
+# In[36]:
+
+
+U, V, W, X_means, X_stds, T_means, T_stds = train(Xtrain, Ttrain, 5, 5, 10000, 0.01)
+Y = use(Xtrain, X_means, X_stds, T_means, T_stds, U, V, W)
+plt.plot(Xtrain, Ttrain, 'o', label='Train')
+plt.plot(Xtrain, Y, 'o', label='Test')
+plt.legend();
+
+
+# In[37]:
+
+
+X_Wine = data['total sulfur dioxide']
+T_Wine = data['quality']
+print(X_Wine.shape)
+X = np.array(X_Wine[:100]).reshape((-1, 1))
+T = np.array(T_Wine[:100]).reshape((-1, 1))
+training_fraction = 0.8
+n_rows = X[:100].shape[0]
+row_indices = np.arange(n_rows)
+np.random.shuffle(row_indices)
+n_train = round(n_rows * training_fraction)
+n_test = n_rows - n_train
+
+Xtrain = X[row_indices[:n_train], :]
+Ttrain = T[row_indices[:n_train], :]
+Xtest = X[row_indices[n_train:], :]
+Ttest = T[row_indices[n_train:], :]
+
+U, V, W, X_means, X_stds, T_means, T_stds = train(Xtrain, Ttrain, 5, 5, 10000, 0.01)
+Y = use(Xtrain, X_means, X_stds, T_means, T_stds, U, V, W)
+plt.plot(Xtrain, Ttrain, 'o', label='Train')
+plt.plot(Xtrain, Y, 'o', label='Test')
+plt.legend();
+
+
+# In[38]:
+
+
+X_Wine = data['citric acid']
+T_Wine = data['quality']
+print(X_Wine.shape)
+X = np.array(X_Wine[:100]).reshape((-1, 1))
+T = np.array(T_Wine[:100]).reshape((-1, 1))
+training_fraction = 0.8
+n_rows = X[:100].shape[0]
+row_indices = np.arange(n_rows)
+np.random.shuffle(row_indices)
+n_train = round(n_rows * training_fraction)
+n_test = n_rows - n_train
+
+Xtrain = X[row_indices[:n_train], :]
+Ttrain = T[row_indices[:n_train], :]
+Xtest = X[row_indices[n_train:], :]
+Ttest = T[row_indices[n_train:], :]
+
+U, V, W, X_means, X_stds, T_means, T_stds = train(Xtrain, Ttrain, 5, 5, 10000, 0.01)
+Y = use(Xtrain, X_means, X_stds, T_means, T_stds, U, V, W)
+plt.plot(Xtrain, Ttrain, 'o', label='Train')
+plt.plot(Xtrain, Y, 'o', label='Test')
+plt.legend();
+
+
+# In[ ]:
+
+
+
 
