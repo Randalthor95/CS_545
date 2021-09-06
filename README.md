@@ -13,6 +13,13 @@ cd D:\College\CS_545\Assignments
 conda activate ml_assignments
 jupyter lab
 
+cd C:\Users\saras\Documents\Tony\CS_545\Assignments
+conda activate ml_assignments
+jupyter lab
+
+cd C:\Users\saras\Documents\Tony\CS_545\Lessons
+conda activate ml
+jupyter lab
 
 conda env update --file environment.yml --prune
 
