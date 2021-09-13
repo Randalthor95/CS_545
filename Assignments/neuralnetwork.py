@@ -118,7 +118,6 @@ class NeuralNetwork():
 
         # Create one-dimensional numpy array of all weights with random initial values
         #  ...
-        print('shapes: ', shapes)
         array_size = 0
         for shape in shapes:
             array_size += (shape[0] * shape[1])
@@ -134,8 +133,7 @@ class NeuralNetwork():
             new_index += (shape[0] * shape[1])
             views.append(all_weights[index:new_index].reshape(shape[0], shape[1]))
             index = new_index
-            
-        print('views: ', views)    
+             
         return all_weights, views
                       
                       
@@ -209,8 +207,6 @@ class NeuralNetwork():
         self.X_stds = X.std(axis=0)
         self.T_means = T.mean(axis=0)
         self.T_stds = T.std(axis=0)
-        print('X_means: ', self.X_means)
-        print('X_stds: ', self.X_stds)
         
         # Standardize X and T
         # ...
@@ -268,7 +264,6 @@ class NeuralNetwork():
         Y = X
         for W in self.Ws:
             Y = np.tanh((Y @ W[1:]) + W[:1])
-            
             self.Ys.append(Y)
         
         return self.Ys
@@ -348,9 +343,17 @@ class NeuralNetwork():
 
         # Standardize X
         # ...
+        X_means = X.mean(axis=0)
+        X_stds = X.std(axis=0)
+        XS = (X - X_means) / X_stds
+        
+        Y = XS
+        for W in self.Ws:
+            Y = np.tanh((Y @ W[1:]) + W[:1])
         
         # Unstandardize output Y before returning it
-        return ...
+        
+        return Y * self.T_stds + self.T_means
 
     def get_error_trace(self):
         """Returns list of standardized mean square error for each epoch"""
