@@ -86,13 +86,12 @@ class NeuralNetwork():
         # Build list of shapes for weight matrices in each layer
         # ...
         shapes = []
-        loop = 0
-        for num_units_in_layer in n_hidden_units_by_layers:
-            if loop == 0:
-               shapes.append((1 + n_inputs, num_units_in_layer))
+        for n in range(len(n_hidden_units_by_layers)):
+            if n == 0:
+               shapes.append((1 + n_inputs, n_hidden_units_by_layers[n]))
             else:
-                shapes.append((1 + num_hidden_units_by_layers[loop-1], num_units_in_layer))
-            loop += 1
+                shapes.append((1 + n_hidden_units_by_layers[n-1], n_hidden_units_by_layers[n]))
+                
         shapes.append((1 + n_hidden_units_by_layers[len(n_hidden_units_by_layers)-1], n_outputs))
         
         # Call make_weights_and_views to create all_weights and Ws
@@ -119,23 +118,24 @@ class NeuralNetwork():
 
         # Create one-dimensional numpy array of all weights with random initial values
         #  ...
-        print(shapes)
+        print('shapes: ', shapes)
         array_size = 0
         for shape in shapes:
-            array_size = array_size + shape[0] + shape[1]
+            array_size += (shape[0] * shape[1])
         all_weights = np.random.uniform(-1, 1, size=array_size)
-        print(all_weights)
+        
         # Build list of views by reshaping corresponding elements
         # from vector of all weights into correct shape for each layer.        
         # ...
         views = []
         index = 0
+        new_index = 0
         for shape in shapes:
-            new_index = index + shape[0] + shape[1] + 1
+            new_index += (shape[0] * shape[1])
             views.append(all_weights[index:new_index].reshape(shape[0], shape[1]))
             index = new_index
             
-            
+        print('views: ', views)    
         return all_weights, views
                       
                       
@@ -192,8 +192,7 @@ class NeuralNetwork():
 #         for i in range(len(T_means)):
 #             T_means[i] = T_mean[i]/len(T)
 
-        XS = []
-        TS = []
+        
 #         for col in X:
 #             print(col)
 #             X_means.append(col.mean(axis=0))
@@ -206,40 +205,42 @@ class NeuralNetwork():
 #             T_means.append(col.std(axis=0))
 #             T_stds.append(col.std(axis=0))
             
-        X_means = X.mean(axis=0)
-        X_stds = X.std(axis=0)
-        T_means = T.mean(axis=0)
-        T_stds = T.std(axis=0)
-        print('X_means: ', X_means)
-        print('X_stds: ', X_stds)
-        XS = (X - X_means) / X_stds
-        TS = (T - T_means) / T_stds
-
-        print('XS: ', XS)
+        self.X_means = X.mean(axis=0)
+        self.X_stds = X.std(axis=0)
+        self.T_means = T.mean(axis=0)
+        self.T_stds = T.std(axis=0)
+        print('X_means: ', self.X_means)
+        print('X_stds: ', self.X_stds)
+        
         # Standardize X and T
         # ...
-
-        # Instantiate Optimizers object by giving it vector of all weights
-#         optimizer = opt.Optimizers(self.all_weights)
-
-        error_convert_f = lambda err: (np.sqrt(err) * self.T_stds)[0]
+        #TODO double check
+        XS = (X - self.X_means) / self.X_stds
+        TS = (T - self.T_means) / self.T_stds
         
+        # Instantiate Optimizers object by giving it vector of all weights
+        optimizer = opt.Optimizers(self.all_weights)
+        error_convert_f = lambda err: (np.sqrt(err) * self.T_stds)[0]
+        error_trace = None
         # Call the requested optimizer method to train the weights.
 
-#         if method == 'sgd':
+        if method == 'sgd':
+            
+            error_trace = optimizer.sgd(self.error_f, self.gradient_f, fargs=[X, T], n_epochs=n_epochs, learning_rate=learning_rate, verbose=verbose,
+               error_convert_f=error_convert_f)
 
-#             # ...
+        elif method == 'adam':
 
-#         elif method == 'adam':
+           error_trace = optimizer.adam(self.error_f, self.gradient_f, fargs=[X, T], n_epochs=n_epochs, learning_rate=learning_rate, verbose=verbose,
+               error_convert_f=error_convert_f)
 
-#             # ...
+        elif method == 'scg':
 
-#         elif method == 'scg':
+            error_trace = optimizer.scg(self.error_f, self.gradient_f, fargs=[X, T], n_epochs=n_epochs, verbose=verbose,
+               error_convert_f=error_convert_f)
 
-#             # ...
-
-#         else:
-#             raise Exception("method must be 'sgd', 'adam', or 'scg'")
+        else:
+            raise Exception("method must be 'sgd', 'adam', or 'scg'")
 
         self.total_epochs += len(error_trace)
         self.error_trace += error_trace
@@ -261,10 +262,17 @@ class NeuralNetwork():
         Outputs of all layers as list
         """
         self.Ys = [X]
+        
         # Append output of each layer to list in self.Ys, then return it.
         # ...
+        Y = X
+        for W in self.Ws:
+            Y = np.tanh((Y @ W[1:]) + W[:1])
+            
+            self.Ys.append(Y)
         
-
+        return self.Ys
+    
     # Function to be minimized by optimizer method, mean squared error
     def error_f(self, X, T):
         """Calculate output of net and its mean squared error 
@@ -283,6 +291,9 @@ class NeuralNetwork():
         """
         # Call _forward, calculate mean square error and return it.
         # ...
+        Ys = self._forward(X)
+        error = (T - Ys[-1]) * self.T_stds 
+        return np.sqrt(np.mean(error ** 2))
 
 #     Gradient of function to be minimized for use by optimizer method
     def gradient_f(self, X, T):
@@ -310,14 +321,15 @@ class NeuralNetwork():
 
         # Step backwards through the layers to back-propagate the error (D)
         for layeri in range(n_layers - 1, -1, -1):
+            
             # gradient of all but bias weights
-            self.Grads[layeri][1:, :] = ...
+            self.Grads[layeri][1:, :] = self.Ys[layeri].T @ D
             # gradient of just the bias weights
             self.Grads[layeri][0:1, :] = np.sum(D, axis=0)
             # Back-propagate this layer's delta to previous layer
             if layeri > 0:
-                D = ...
-
+                D = D @ self.Ws[layeri][1:, :].T * (1-self.Ys[layeri]**2)
+                    
         return self.all_gradients
 
     def use(self, X):
@@ -343,3 +355,6 @@ class NeuralNetwork():
     def get_error_trace(self):
         """Returns list of standardized mean square error for each epoch"""
         return self.error_trace
+    
+    def addOnes(self, X):
+        return np.insert(X, 0, 1, axis=1)
