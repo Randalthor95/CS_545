@@ -169,10 +169,6 @@ class NeuralNetwork():
 
         # Calculate and assign standardization parameters
         # ...
-        X_means = []
-        X_stds = []
-        T_means= []
-        T_stds = []
 #         for i in range(len(X[0])):
 #             X_means.append([])
         
@@ -222,17 +218,17 @@ class NeuralNetwork():
 
         if method == 'sgd':
             
-            error_trace = optimizer.sgd(self.error_f, self.gradient_f, fargs=[X, T], n_epochs=n_epochs, learning_rate=learning_rate, verbose=verbose,
+            error_trace = optimizer.sgd(self.error_f, self.gradient_f, fargs=[XS, TS], n_epochs=n_epochs, learning_rate=learning_rate, verbose=verbose,
                error_convert_f=error_convert_f)
 
         elif method == 'adam':
 
-           error_trace = optimizer.adam(self.error_f, self.gradient_f, fargs=[X, T], n_epochs=n_epochs, learning_rate=learning_rate, verbose=verbose,
+           error_trace = optimizer.adam(self.error_f, self.gradient_f, fargs=[XS, TS], n_epochs=n_epochs, learning_rate=learning_rate, verbose=verbose,
                error_convert_f=error_convert_f)
 
         elif method == 'scg':
 
-            error_trace = optimizer.scg(self.error_f, self.gradient_f, fargs=[X, T], n_epochs=n_epochs, verbose=verbose,
+            error_trace = optimizer.scg(self.error_f, self.gradient_f, fargs=[XS, TS], n_epochs=n_epochs, verbose=verbose,
                error_convert_f=error_convert_f)
 
         else:
@@ -323,7 +319,7 @@ class NeuralNetwork():
             self.Grads[layeri][0:1, :] = np.sum(D, axis=0)
             # Back-propagate this layer's delta to previous layer
             if layeri > 0:
-                D = D @ self.Ws[layeri][1:, :].T * (1-self.Ys[layeri]**2)
+                D = D @ self.Ws[layeri][1:, :].T * (1-self.Ys[layeri]**2) / (n_samples * n_outputs)
                     
         return self.all_gradients
 
