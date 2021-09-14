@@ -6,14 +6,17 @@ import math
 import sys  # for sys.float_info.epsilon
 
 ######################################################################
-## class Optimizers()
+# class Optimizers()
 ######################################################################
+
 
 class Optimizers():
 
     def __init__(self, all_weights):
-        '''all_weights is a vector of all of a neural networks weights concatenated into a one-dimensional vector'''
-        
+        '''
+        all_weights is a vector of all of a neural networks weights
+        concatenated into a one-dimensional vector'''
+      
         self.all_weights = all_weights
 
         self.sgd_initialized = False
@@ -21,15 +24,20 @@ class Optimizers():
         self.adam_initialized = False
 
 ######################################################################
-#### sgd
+# sgd
 ######################################################################
 
-    def sgd(self, error_f, gradient_f, fargs=[], n_epochs=100, learning_rate=0.001, verbose=True, error_convert_f=None, nesterov=False, callback_f=None):
+    def sgd(self, error_f, gradient_f, fargs=[], n_epochs=100,
+            learning_rate=0.001, verbose=False, error_convert_f=None,
+            nesterov=False, callback_f=None):
         '''
-        error_f: function that requires X and T as arguments (given in fargs) and returns mean squared error.
-        gradient_f: function that requires X and T as arguments (in fargs) and returns gradient of mean squared error
-                    with respect to each weight.
-        error_convert_f: function that converts the standardized error from error_f to original T units.
+        error_f: function that requires X and T as arguments (given in fargs)
+                 and returns mean squared error.
+        gradient_f: function that requires X and T as arguments (in fargs)
+                 and returns gradient of mean squared error
+                 with respect to each weight.
+        error_convert_f: function that converts the standardized error from
+            error_f to original T units.
         '''
 
         if not self.sgd_initialized:
@@ -38,7 +46,7 @@ class Optimizers():
             self.prev_update = 0
             if nesterov:
                 self.all_weights_copy = np.zeros(self.all_weights.shape)
- 
+
         epochs_per_print = n_epochs // 10
 
         for epoch in range(n_epochs):
@@ -47,13 +55,13 @@ class Optimizers():
             grad = gradient_f(*fargs)
 
             if not nesterov:
-                
+              
                 self.prev_update = learning_rate * grad + self.momentum * self.prev_update
                 # Update all weights using -= to modify their values in-place.
                 self.all_weights -= self.prev_update
 
             else:
-                self.all_weights_copy[:] = self.all_weights 
+                self.all_weights_copy[:] = self.all_weights
 
                 self.all_weights -= self.momentum * self.prev_update
                 error = error_f(*fargs)
@@ -70,7 +78,7 @@ class Optimizers():
                 callback_f(epoch)
 
             if verbose and ((epoch + 1) % max(1, epochs_per_print) == 0):
-                print(f'sgd: Epoch {epoch+1:d} Error={error:.5f}')
+                print(f'sgd: Epoch {epoch+1:d} ObjectiveF={error:.5f}')
 
         return error_trace
 
@@ -130,7 +138,7 @@ class Optimizers():
                 callback_f(epoch)
 
             if verbose and ((epoch + 1) % max(1, epochs_per_print) == 0):
-                print(f'Adam: Epoch {epoch+1:d} Error={error:.5f}')
+                print(f'Adam: Epoch {epoch+1:d} ObjectiveF={error:.5f}')
 
         return error_trace
 
@@ -235,8 +243,9 @@ class Optimizers():
 
             iterationsPerPrint = math.ceil(n_epochs/10)
             if verbose and iteration % max(1, iterationsPerPrint) == 0:
-                print('SCG: Iteration {:d} ObjectiveF={:.5f} Scale={:.3e} Seconds={:.3f}'.format(iteration,
-                                error_convert_f(fnow), beta, (time.time()-startTimeLastVerbose)))
+                print(f'SCG: Epoch {iteration:d} ObjectiveF={error_convert_f(fnow):.5f}')
+                # print('SCG: Iteration {:d} ObjectiveF={:.5f} Scale={:.3e} Seconds={:.3f}'.format(iteration,
+                #                 error_convert_f(fnow), beta, (time.time()-startTimeLastVerbose)))
 
 
                 startTimeLastVerbose = time.time()
@@ -276,5 +285,6 @@ class Optimizers():
             # If we get here, then we haven't terminated in the given number of
             # iterations.
 
-        return error_trace
+        return error_trace[1:]
 
+    

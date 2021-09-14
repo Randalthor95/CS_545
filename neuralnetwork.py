@@ -86,17 +86,13 @@ class NeuralNetwork():
         # Build list of shapes for weight matrices in each layer
         # ...
         shapes = []
-        if n_hidden_units_by_layers:
-            for n in range(len(n_hidden_units_by_layers)):
-                if n == 0:
-                    shapes.append((1 + n_inputs, n_hidden_units_by_layers[n]))
-                else:
-                    shapes.append((1 + n_hidden_units_by_layers[n-1], n_hidden_units_by_layers[n]))
-
-            shapes.append((1 + n_hidden_units_by_layers[len(n_hidden_units_by_layers)-1], n_outputs))
-        else:
-            # no hidden layers, i.e. empty list passed in for n_hidden_units_by_layers
-            shapes.append((1 + n_inputs, n_outputs))
+        for n in range(len(n_hidden_units_by_layers)):
+            if n == 0:
+               shapes.append((1 + n_inputs, n_hidden_units_by_layers[n]))
+            else:
+                shapes.append((1 + n_hidden_units_by_layers[n-1], n_hidden_units_by_layers[n]))
+                
+        shapes.append((1 + n_hidden_units_by_layers[len(n_hidden_units_by_layers)-1], n_outputs))
         
         # Call make_weights_and_views to create all_weights and Ws
         # ...
@@ -173,6 +169,10 @@ class NeuralNetwork():
 
         # Calculate and assign standardization parameters
         # ...
+        X_means = []
+        X_stds = []
+        T_means= []
+        T_stds = []
 #         for i in range(len(X[0])):
 #             X_means.append([])
         
@@ -217,21 +217,22 @@ class NeuralNetwork():
         # Instantiate Optimizers object by giving it vector of all weights
         optimizer = opt.Optimizers(self.all_weights)
         error_convert_f = lambda err: (np.sqrt(err) * self.T_stds)[0]
+        error_trace = None
         # Call the requested optimizer method to train the weights.
 
         if method == 'sgd':
             
-            error_trace = optimizer.sgd(self.error_f, self.gradient_f, fargs=[XS, TS], n_epochs=n_epochs, learning_rate=learning_rate, verbose=verbose,
+            error_trace = optimizer.sgd(self.error_f, self.gradient_f, fargs=[X, T], n_epochs=n_epochs, learning_rate=learning_rate, verbose=verbose,
                error_convert_f=error_convert_f)
 
         elif method == 'adam':
 
-            error_trace = optimizer.adam(self.error_f, self.gradient_f, fargs=[XS, TS], n_epochs=n_epochs, learning_rate=learning_rate, verbose=verbose,
+           error_trace = optimizer.adam(self.error_f, self.gradient_f, fargs=[X, T], n_epochs=n_epochs, learning_rate=learning_rate, verbose=verbose,
                error_convert_f=error_convert_f)
 
         elif method == 'scg':
 
-            error_trace = optimizer.scg(self.error_f, self.gradient_f, fargs=[XS, TS], n_epochs=n_epochs, verbose=verbose,
+            error_trace = optimizer.scg(self.error_f, self.gradient_f, fargs=[X, T], n_epochs=n_epochs, verbose=verbose,
                error_convert_f=error_convert_f)
 
         else:
@@ -260,8 +261,12 @@ class NeuralNetwork():
         
         # Append output of each layer to list in self.Ys, then return it.
         # ...
-        for i in range(len(self.Ws)):
-            self.Ys.append(np.tanh((self.Ys[i] @ self.Ws[i][1:, :]) + self.Ws[i][0:1, :]))
+        Y = X
+        for W in self.Ws:
+            Y = np.tanh(Y @ W)
+#             Y = np.tanh((Y @ W[1:]) + W[:1])
+            self.Ys.append(Y)
+        
         return self.Ys
     
     # Function to be minimized by optimizer method, mean squared error
@@ -282,7 +287,8 @@ class NeuralNetwork():
         """
         # Call _forward, calculate mean square error and return it.
         # ...
-        error = (T - self._forward(X)[-1])
+        Ys = self._forward(X)
+        error = (T - Ys[-1]) * self.T_stds 
         return np.sqrt(np.mean(error ** 2))
 
 #     Gradient of function to be minimized for use by optimizer method
@@ -318,7 +324,7 @@ class NeuralNetwork():
             self.Grads[layeri][0:1, :] = np.sum(D, axis=0)
             # Back-propagate this layer's delta to previous layer
             if layeri > 0:
-                D = - D @ self.Ws[layeri][1:, :].T * (1-self.Ys[layeri]**2)
+                D = D @ self.Ws[layeri][1:, :].T * (1-self.Ys[layeri]**2)
                     
         return self.all_gradients
 

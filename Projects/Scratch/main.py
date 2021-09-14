@@ -24,8 +24,8 @@ if __name__ == '__main__':
                    [2, 3],
                    [2, 3]])
     print(l @ r)
-    print(l2 @ r[1:])
-    print(r[:1])
-    print((l2 @ r[1:]) + r[:1])
+    print(l2 @ r[1:, :])
+    print(r[0:1, :])
+    print((l2 @ r[1:, :]) + r[0:1, :])
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
