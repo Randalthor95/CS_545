@@ -89,11 +89,11 @@ class NeuralNetwork():
         if n_hidden_units_by_layers:
             for n in range(len(n_hidden_units_by_layers)):
                 if n == 0:
-                    shapes.append((n_inputs, n_hidden_units_by_layers[n]))
+                    shapes.append((1 + n_inputs, n_hidden_units_by_layers[n]))
                 else:
-                    shapes.append((n_hidden_units_by_layers[n-1], n_hidden_units_by_layers[n]))
+                    shapes.append((1 + n_hidden_units_by_layers[n-1], n_hidden_units_by_layers[n]))
 
-            shapes.append((n_hidden_units_by_layers[len(n_hidden_units_by_layers)-1], n_outputs))
+            shapes.append((1 + n_hidden_units_by_layers[len(n_hidden_units_by_layers)-1], n_outputs))
         else:
             # no hidden layers, i.e. empty list passed in for n_hidden_units_by_layers
             shapes.append((n_inputs, n_outputs))
@@ -131,13 +131,16 @@ class NeuralNetwork():
         # from vector of all weights into correct shape for each layer.        
         # ...
         #TODO make sure division makes sense / np.sqrt(shapes[0]
+        
         views = []
         index = 0
         new_index = 0
         for shape in shapes:
             new_index += (shape[0] * shape[1])
-            views.append(all_weights[index:new_index].reshape(shape[0], shape[1]))
+            views.append(all_weights[index:new_index].reshape(shape[0], shape[1])  / np.sqrt(shape[0]))
             index = new_index
+            
+            
              
         return all_weights, views
                       
@@ -234,8 +237,11 @@ class NeuralNetwork():
         
         # Append output of each layer to list in self.Ys, then return it.
         # ...
-        for i in range(len(self.Ws)):
-            self.Ys.append(np.tanh(self.Ys[i] @ self.Ws[i]))
+        #Also, need to add back in the sum for self.Ws[i][0:1, :])
+        for i in range(len(self.Ws)-1):
+            self.Ys.append(np.tanh((self.Ys[i] @ self.Ws[i][1:, :]) + self.Ws[i][0:1, :]))
+        # Output layer
+        self.Ys.append((self.Ys[-1] @ self.Ws[-1][1:, :]) + self.Ws[-1][0:1, :])
         return self.Ys
     
     # Function to be minimized by optimizer method, mean squared error
@@ -280,19 +286,19 @@ class NeuralNetwork():
         n_outputs = T.shape[1]
         n_layers = len(self.n_hidden_units_by_layers) + 1
 
-        # D is delta matrix to be back propagated
+        # D is delta matrix to be back propagated, only need division and negative on first step
         D = -(T - self.Ys[-1]) / (n_samples * n_outputs)
 
         # Step backwards through the layers to back-propagate the error (D)
         for layeri in range(n_layers - 1, -1, -1):
             
             # gradient of all but bias weights
-            self.Grads[layeri][1:, :] = (self.Ys[layeri].T @ D)[1:, :]
+            self.Grads[layeri][1:, :] = - self.Ys[layeri].T @ D
             # gradient of just the bias weights
             self.Grads[layeri][0:1, :] = np.sum(D, axis=0)
             # Back-propagate this layer's delta to previous layer
             if layeri > 0:
-                D = - D @ self.Ws[layeri].T * (1-self.Ys[layeri]**2)
+                D = D @ self.Ws[layeri][1:, :].T * (1-self.Ys[layeri]**2)
                     
         return self.all_gradients
 

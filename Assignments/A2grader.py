@@ -14,14 +14,16 @@ if run_my_solution:
 
 else:
     
-    print('\n======================= Code Execution =======================\n')
+    import subprocess, glob, pathlib
 
     assignmentNumber = '2'
 
-    import subprocess, glob, pathlib
     nb_name = '*A{}*.ipynb'
     # nb_name = '*.ipynb'
     filename = next(glob.iglob(nb_name.format(assignmentNumber)), None)
+
+    print('\n======================= Code Execution =======================\n')
+
     print('Extracting python code from notebook named \'{}\' and storing in notebookcode.py'.format(filename))
     if not filename:
         raise Exception('Please rename your notebook file to <Your Last Name>-A{}.ipynb'.format(assignmentNumber))
@@ -53,6 +55,8 @@ else:
     
 exec_grade = 0
 
+from neuralnetwork import NeuralNetwork
+
 for func in ['NeuralNetwork']:
     if func not in dir() or not callable(globals()[func]):
         print('CRITICAL ERROR: Function named \'{}\' is not defined'.format(func))
@@ -68,6 +72,8 @@ for func in ['NeuralNetwork']:
 
 print('''\nTesting
 
+    import neuralnetwork as nn
+
     n_inputs = 3
     n_hiddens = [10, 20]
     n_outputs = 2
@@ -75,7 +81,7 @@ print('''\nTesting
 
     X = np.arange(n_samples * n_inputs).reshape(n_samples, n_inputs) * 0.1
     
-    nnet = NeuralNetwork(n_inputs, n_hiddens, n_outputs)
+    nnet = nn.NeuralNetwork(n_inputs, n_hiddens, n_outputs)
     nnet.all_weights = 0.1  # set all weights to 0.1
     nnet.X_means = np.mean(X, axis=0)
     nnet.X_stds = np.std(X, axis=0)
@@ -88,6 +94,8 @@ print('''\nTesting
 try:
     pts = 40
 
+    import neuralnetwork as nn
+
     n_inputs = 3
     n_hiddens = [10, 20]
     n_outputs = 2
@@ -95,7 +103,7 @@ try:
 
     X = np.arange(n_samples * n_inputs).reshape(n_samples, n_inputs) * 0.1
     
-    nnet = NeuralNetwork(n_inputs, n_hiddens, n_outputs)
+    nnet = nn.NeuralNetwork(n_inputs, n_hiddens, n_outputs)
     nnet.all_weights[:] = 0.1  # set all weights to 0.1
     nnet.X_means = np.mean(X, axis=0)
     nnet.X_stds = np.std(X, axis=0)
@@ -139,7 +147,7 @@ print('''\nTesting
 
     results = []
     for rep in range(20):
-        nnet = NeuralNetwork(n_inputs, n_hiddens, n_outputs)
+        nnet = nn.NeuralNetwork(n_inputs, n_hiddens, n_outputs)
         nnet.train(X, T, 5000, 'adam', 0.001, verbose=False)
         Y = nnet.use(X)
         err = rmse(Y, T)
@@ -167,7 +175,7 @@ try:
 
     results = []
     for rep in range(20):
-        nnet = NeuralNetwork(n_inputs, n_hiddens, n_outputs)
+        nnet = nn.NeuralNetwork(n_inputs, n_hiddens, n_outputs)
         nnet.train(X, T, 5000, 'adam', 0.001, verbose=False)
         Y = nnet.use(X)
         err = rmse(Y, T)
