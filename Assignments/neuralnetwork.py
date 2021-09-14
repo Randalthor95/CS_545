@@ -89,14 +89,14 @@ class NeuralNetwork():
         if n_hidden_units_by_layers:
             for n in range(len(n_hidden_units_by_layers)):
                 if n == 0:
-                    shapes.append((1 + n_inputs, n_hidden_units_by_layers[n]))
+                    shapes.append((n_inputs, n_hidden_units_by_layers[n]))
                 else:
-                    shapes.append((1 + n_hidden_units_by_layers[n-1], n_hidden_units_by_layers[n]))
+                    shapes.append((n_hidden_units_by_layers[n-1], n_hidden_units_by_layers[n]))
 
-            shapes.append((1 + n_hidden_units_by_layers[len(n_hidden_units_by_layers)-1], n_outputs))
+            shapes.append((n_hidden_units_by_layers[len(n_hidden_units_by_layers)-1], n_outputs))
         else:
             # no hidden layers, i.e. empty list passed in for n_hidden_units_by_layers
-            shapes.append((1 + n_inputs, n_outputs))
+            shapes.append((n_inputs, n_outputs))
         
         # Call make_weights_and_views to create all_weights and Ws
         # ...
@@ -130,6 +130,7 @@ class NeuralNetwork():
         # Build list of views by reshaping corresponding elements
         # from vector of all weights into correct shape for each layer.        
         # ...
+        #TODO make sure division makes sense / np.sqrt(shapes[0]
         views = []
         index = 0
         new_index = 0
@@ -173,35 +174,8 @@ class NeuralNetwork():
 
         # Calculate and assign standardization parameters
         # ...
-#         for i in range(len(X[0])):
-#             X_means.append([])
-        
-#         for row in X:
-#             for i in range(len(row)):
-#                 X_means[i]+= row[i]
-        
-#         for row in T:
-#             for i in range(len(row)):
-#                 T_means[i]+= row[i]
-             
-#         for i in range(len(X_means)):
-#             X_means[i] = X_mean[i]/len(X)
-            
-#         for i in range(len(T_means)):
-#             T_means[i] = T_mean[i]/len(T)
 
-        
-#         for col in X:
-#             print(col)
-#             X_means.append(col.mean(axis=0))
-#             X_stds.append(col.mean(axis=0))
-            
-            
-        
-#         TS = []
-#         for col in T:
-#             T_means.append(col.std(axis=0))
-#             T_stds.append(col.std(axis=0))
+
             
         self.X_means = X.mean(axis=0)
         self.X_stds = X.std(axis=0)
@@ -261,7 +235,7 @@ class NeuralNetwork():
         # Append output of each layer to list in self.Ys, then return it.
         # ...
         for i in range(len(self.Ws)):
-            self.Ys.append(np.tanh((self.Ys[i] @ self.Ws[i][1:, :]) + self.Ws[i][0:1, :]))
+            self.Ys.append(np.tanh(self.Ys[i] @ self.Ws[i]))
         return self.Ys
     
     # Function to be minimized by optimizer method, mean squared error
@@ -313,12 +287,12 @@ class NeuralNetwork():
         for layeri in range(n_layers - 1, -1, -1):
             
             # gradient of all but bias weights
-            self.Grads[layeri][1:, :] = self.Ys[layeri].T @ D
+            self.Grads[layeri][1:, :] = (self.Ys[layeri].T @ D)[1:, :]
             # gradient of just the bias weights
             self.Grads[layeri][0:1, :] = np.sum(D, axis=0)
             # Back-propagate this layer's delta to previous layer
             if layeri > 0:
-                D = - D @ self.Ws[layeri][1:, :].T * (1-self.Ys[layeri]**2)
+                D = - D @ self.Ws[layeri].T * (1-self.Ys[layeri]**2)
                     
         return self.all_gradients
 
@@ -342,13 +316,9 @@ class NeuralNetwork():
         X_stds = X.std(axis=0)
         XS = (X - X_means) / X_stds
         
-        Y = XS
-        for W in self.Ws:
-            Y = np.tanh((Y @ W[1:]) + W[:1])
-        
         # Unstandardize output Y before returning it
         
-        return Y * self.T_stds + self.T_means
+        return self._forward(XS)[-1] * self.T_stds + self.T_means
 
     def get_error_trace(self):
         """Returns list of standardized mean square error for each epoch"""
