@@ -138,7 +138,7 @@ class Optimizers():
                 callback_f(epoch)
 
             if verbose and ((epoch + 1) % max(1, epochs_per_print) == 0):
-                print(f'Adam: Epoch {epoch+1:d} ObjectiveF={error:.5f}')
+                print(f'Adam: Epoch {epoch+1:d}  qF={error:.5f}')
 
         return error_trace
 
