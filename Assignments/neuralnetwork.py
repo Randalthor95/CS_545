@@ -127,6 +127,12 @@ class NeuralNetwork():
             array_size += (shape[0] * shape[1])
         all_weights = np.random.uniform(-1, 1, size=array_size)
         
+        index = 0
+        new_index = 0
+        for shape in shapes:
+            new_index += (shape[0] * shape[1])
+            all_weights[index:new_index] = all_weights[index:new_index] / shape[0]
+            index = new_index
         # Build list of views by reshaping corresponding elements
         # from vector of all weights into correct shape for each layer.        
         # ...
