@@ -96,7 +96,7 @@ class NeuralNetwork():
             shapes.append((1 + n_hidden_units_by_layers[len(n_hidden_units_by_layers)-1], n_outputs))
         else:
             # no hidden layers, i.e. empty list passed in for n_hidden_units_by_layers
-            shapes.append((n_inputs, n_outputs))
+            shapes.append((1 + n_inputs, n_outputs))
         
         # Call make_weights_and_views to create all_weights and Ws
         # ...
@@ -236,11 +236,12 @@ class NeuralNetwork():
         # Append output of each layer to list in self.Ys, then return it.
         # ...
         #Also, need to add back in the sum for self.Ws[i][0:1, :])
-        Z = np.tanh((X @ self.Ws[0][1:, :]) + self.Ws[0][0:1, :])
-        self.Ys.append(Z)
-        for i in range(len(self.Ws)-2):
-            Z = np.tanh((self.Ys[i + 1] @ self.Ws[i + 1][1:, :]) + self.Ws[i + 1][0:1, :])
+        if self.n_hidden_units_by_layers:
+            Z = np.tanh((X @ self.Ws[0][1:, :]) + self.Ws[0][0:1, :])
             self.Ys.append(Z)
+            for i in range(len(self.Ws)-2):
+                Z = np.tanh((self.Ys[i + 1] @ self.Ws[i + 1][1:, :]) + self.Ws[i + 1][0:1, :])
+                self.Ys.append(Z)
         # Output layer
         Z = (self.Ys[-1] @ self.Ws[-1][1:, :]) + self.Ws[-1][0:1, :]
         self.Ys.append(Z)
@@ -289,7 +290,6 @@ class NeuralNetwork():
 
         # D is delta matrix to be back propagated, only need division and negative on first step
         D = -(T - self.Ys[-1]) / (n_samples * n_outputs)
-
         # Step backwards through the layers to back-propagate the error (D)
         for layeri in range(n_layers - 1, -1, -1):
             
