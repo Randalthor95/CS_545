@@ -4,13 +4,13 @@ Repo for coursework for CSU CS 545 https://www.cs.colostate.edu/~anderson/cs545/
 CS 545: Machine Learning
 
 D:
-cd D:\College\CS_545\Lessons
-conda activate ml
+cd D:\College\CS_545\Assignments
+conda activate ml_assignments
 jupyter lab
 
 D:
-cd D:\College\CS_545\Assignments
-conda activate ml_assignments
+cd D:\College\CS_545\Lessons
+conda activate ml
 jupyter lab
 
 cd C:\Users\saras\Documents\Tony\CS_545\Assignments
