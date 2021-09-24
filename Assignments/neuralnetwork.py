@@ -271,7 +271,7 @@ class NeuralNetwork():
         """
         # Call _forward, calculate mean square error and return it.
         # ...
-        return np.sqrt(np.mean((T - self._forward(X)[-1]) ** 2))
+        return np.mean((T - self._forward(X)[-1]) ** 2)
 
 #     Gradient of function to be minimized for use by optimizer method
     def gradient_f(self, X, T):
