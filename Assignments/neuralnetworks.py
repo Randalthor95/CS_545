@@ -282,31 +282,22 @@ class NeuralNetworkClassifier(NeuralNetwork):
         X = (X - self.X_means) / self.X_stds
         Ys = self._forward(X)
         probabilities = self._softmax(Ys[-1])
-        return np.argmax(probabilities, axis=1), probabilities
+        argmax = np.argmax(probabilities, axis=1).reshape(-1, 1)
+        return argmax, probabilities
 
     def _neg_log_likelihood_f(self, X, T):
 
         Ys = self._forward(X)
         Y = self._softmax(Ys[-1])
         neg_mean_log_likelihood = -np.mean(T * np.log(Y + sys.float_info.epsilon))
-        # print('In _neg_log_likelihood: arguments are:')
-        # print('X (standardized): ')
-        # print(X)
-        # print('T (inidicator variables): ')
-        # print(T)
-        # print('Result of call to self._forward is:')
-        # print(Ys)
-        # print('Result of _softmax is:')
-        # print(Y)
-        # print('Result of np.log(Y + sys.float_info.epsilon) is:')
-        # print(neg_mean_log_likelihood)
         return neg_mean_log_likelihood
 
-    # # TODO
     def _gradient_f(self, X, T):
         # Assumes forward_pass just called with layer outputs saved in self.Ys.
         # D is delta matrix to be back propagated
-        D = (T - self._softmax(self.Ys[-1]))
+        n_samples = X.shape[0]
+        n_outputs = T.shape[1]
+        D = -(T -  self._softmax(self.Ys[-1])) / (n_samples * n_outputs)
         self._backpropagate(D)
         return self.all_gradients
 
