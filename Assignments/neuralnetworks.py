@@ -202,6 +202,20 @@ class NeuralNetworkClassifier(NeuralNetwork):
             s += f'\n Final data likelihood {self.error_trace[-1]:.4g}.'
         return s
 
+    def _softmax(self, Y):
+        '''Apply to final layer weighted sum outputs'''
+        # Trick to avoid overflow
+        maxY = Y.max()
+        expY = np.exp(Y - maxY)
+        denom = expY.sum(1).reshape((-1, 1))
+        Y = expY / (denom + sys.float_info.epsilon)
+        return Y
+
+    def makeIndicatorVars(self, T):
+        if T.ndim == 1:
+            T = T.reshape((-1, 1))
+        return (T == np.unique(T)).astype(float)
+
     def train(self, X, T, n_epochs, method='sgd', learning_rate=None, verbose=True):
         '''
         X: n_samples x n_inputs matrix of input samples, one per row
@@ -219,39 +233,36 @@ class NeuralNetworkClassifier(NeuralNetwork):
             self.X_means = X.mean(axis=0)
             self.X_stds = X.std(axis=0)
             self.X_stds[self.X_stds == 0] = 1
-            self.T_means = T.mean(axis=0)
-            self.T_stds = T.std(axis=0)
 
         # Standardize X and T
-        X = (X - self.X_means) / self.X_stds
-        T = (T - self.T_means) / self.T_stds
+        Xs = (X - self.X_means) / self.X_stds
         TI = self.makeIndicatorVars(T)
         # Instantiate Optimizers object by giving it vector of all weights
         optimizer = opt.Optimizers(self.all_weights)
 
-        _error_convert_f = lambda err: (np.sqrt(err) * self.T_stds)[0]
+        _to_likelihood = lambda nll: np.exp(-nll)
 
         if method == 'sgd':
 
-            error_trace = optimizer.sgd(self._neg_log_likelihood_f, self._gradient_neg_log_likelihood,
-                                        fargs=[X, TI], n_epochs=n_epochs,
+            error_trace = optimizer.sgd(self._neg_log_likelihood_f, self._gradient_f,
+                                        fargs=[Xs, TI], n_epochs=n_epochs,
                                         learning_rate=learning_rate,
-                                        error_convert_f=_error_convert_f,
+                                        error_convert_f=_to_likelihood,
                                         verbose=verbose)
 
         elif method == 'adam':
 
-            error_trace = optimizer.adam(self._neg_log_likelihood_f, self._gradient_neg_log_likelihood,
-                                         fargs=[X, TI], n_epochs=n_epochs,
+            error_trace = optimizer.adam(self._neg_log_likelihood_f, self._gradient_f,
+                                         fargs=[Xs, TI], n_epochs=n_epochs,
                                          learning_rate=learning_rate,
-                                         error_convert_f=_error_convert_f,
+                                         error_convert_f=_to_likelihood,
                                          verbose=verbose)
 
         elif method == 'scg':
 
-            error_trace = optimizer.scg(self._neg_log_likelihood_f, self._gradient_neg_log_likelihood,
-                                        fargs=[X, TI], n_epochs=n_epochs,
-                                        error_convert_f=_error_convert_f,
+            error_trace = optimizer.scg(self._neg_log_likelihood_f, self._gradient_f,
+                                        fargs=[Xs, TI], n_epochs=n_epochs,
+                                        error_convert_f=_to_likelihood,
                                         verbose=verbose)
 
         else:
@@ -265,35 +276,37 @@ class NeuralNetworkClassifier(NeuralNetwork):
 
         return self
 
-    def makeIndicatorVars(self, T):
-        if T.ndim == 1:
-            T = T.reshape((-1, 1))
-        return (T == np.unique(T)).asType(float)
+    def use(self, X):
+        '''X assumed to not be standardized'''
+        # Standardize X
+        X = (X - self.X_means) / self.X_stds
+        Ys = self._forward(X)
+        probabilities = self._softmax(Ys[-1])
+        return np.argmax(probabilities, axis=1), probabilities
 
-    # TODO
     def _neg_log_likelihood_f(self, X, T):
+
         Ys = self._forward(X)
         Y = self._softmax(Ys[-1])
         neg_mean_log_likelihood = -np.mean(T * np.log(Y + sys.float_info.epsilon))
+        # print('In _neg_log_likelihood: arguments are:')
+        # print('X (standardized): ')
+        # print(X)
+        # print('T (inidicator variables): ')
+        # print(T)
+        # print('Result of call to self._forward is:')
+        # print(Ys)
+        # print('Result of _softmax is:')
+        # print(Y)
+        # print('Result of np.log(Y + sys.float_info.epsilon) is:')
+        # print(neg_mean_log_likelihood)
         return neg_mean_log_likelihood
 
-    # TODO
-    def _gradient_neg_log_likelihood(self, X, T):
+    # # TODO
+    def _gradient_f(self, X, T):
         # Assumes forward_pass just called with layer outputs saved in self.Ys.
         # D is delta matrix to be back propagated
-        D = (T - self.Ys[-1])
+        D = (T - self._softmax(self.Ys[-1]))
         self._backpropagate(D)
         return self.all_gradients
 
-    # TODO
-    def use(self, X):
-        return 0
-
-    def _softmax(self, Y):
-        '''Apply to final layer weighted sum outputs'''
-        # Trick to avoid overflow
-        maxY = Y.max()
-        expY = np.exp(Y - maxY)
-        denom = expY.sum(1).reshape((-1, 1))
-        Y = expY / (denom + sys.float_info.epsilon)
-        return Y
