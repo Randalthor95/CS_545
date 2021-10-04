@@ -190,6 +190,7 @@ class NeuralNetwork():
 class NeuralNetworkClassifier(NeuralNetwork):
     def __init__(self, n_inputs, n_hidden_units_by_layers, n_outputs):
         super().__init__(n_inputs, n_hidden_units_by_layers, n_outputs)
+        self.uniqueTs = {}
 
     def __repr__(self):
         return f'NeuralNetworkClassifier({self.n_inputs}, ' + \
@@ -214,7 +215,11 @@ class NeuralNetworkClassifier(NeuralNetwork):
     def makeIndicatorVars(self, T):
         if T.ndim == 1:
             T = T.reshape((-1, 1))
-        return (T == np.unique(T)).astype(float)
+
+        tempT = np.unique(T)
+        for i in range(len(tempT)):
+            self.uniqueTs[i] = tempT[i]
+        return (T == tempT).astype(float)
 
     def train(self, X, T, n_epochs, method='sgd', learning_rate=None, verbose=True):
         '''
@@ -283,7 +288,14 @@ class NeuralNetworkClassifier(NeuralNetwork):
         Ys = self._forward(X)
         probabilities = self._softmax(Ys[-1])
         argmax = np.argmax(probabilities, axis=1).reshape(-1, 1)
-        return argmax, probabilities
+        new_argmax = self._translate_to_unique_indicators(argmax)
+        return new_argmax, probabilities
+
+    def _translate_to_unique_indicators(self, argmax):
+        new_argmax = []
+        for entry in argmax:
+            new_argmax.append([self.uniqueTs[entry[0]]])
+        return np.array(new_argmax)
 
     def _neg_log_likelihood_f(self, X, T):
 
@@ -297,7 +309,6 @@ class NeuralNetworkClassifier(NeuralNetwork):
         # D is delta matrix to be back propagated
         n_samples = X.shape[0]
         n_outputs = T.shape[1]
-        D = -(T -  self._softmax(self.Ys[-1])) / (n_samples * n_outputs)
+        D = -(T - self._softmax(self.Ys[-1])) / (n_samples * n_outputs)
         self._backpropagate(D)
         return self.all_gradients
-
