@@ -13,6 +13,11 @@ cd D:\College\CS_545\Lessons
 conda activate ml
 jupyter lab
 
+D:
+cd D:\College\CS_545\Final_Project
+conda activate fp
+jupyter lab
+
 cd C:\Users\saras\Documents\Tony\CS_545\Assignments
 conda activate ml_assignments
 jupyter lab

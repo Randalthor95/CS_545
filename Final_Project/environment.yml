@@ -1,0 +1,10 @@
+name: fp
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - jupyter
+  - jupyterlab
+  - matplotlib
+  - numpy
+  - pandas
