@@ -227,7 +227,7 @@ try:
     last_error = nnet.get_error_trace()[-1]
     correct = 0.9297448356260026
 
-    if np.allclose(last_error, correct, atol=0.1):
+    if np.allclose(last_error, correct, rtol=0.1):
         exec_grade += pts
         print(f'\n--- {pts}/{pts} points. Correct values in error_trace')
     else:
@@ -311,7 +311,7 @@ try:
                   [2.69944404e-10, 1.00000000e+00],
                   [2.59802216e-10, 1.00000000e+00]])
 
-    if np.allclose(classes, correct_classes, atol=0.1):
+    if np.allclose(classes, correct_classes, rtol=0.1):
         exec_grade += pts
         print(f'\n--- {pts}/{pts} points. Correct values in classes')
     else:
@@ -319,7 +319,7 @@ try:
         print(f'                 Your value is\n {classes}.')
         print(f'                 Correct value is\n {correct_classes}')
 
-    if np.allclose(prob, correct_prob, atol=0.1):
+    if np.allclose(prob, correct_prob, rtol=0.1):
         exec_grade += pts
         print(f'\n--- {pts}/{pts} points. Correct values in prob')
     else:

@@ -407,7 +407,7 @@ print_nn(nnet_0_scg, 'scg', rho, True, Xtrain, Ttrain, Xval, Tval, Xtest, Ttest)
 # 
 # COMING SOON.  Download [A3grader.tar](https://www.cs.colostate.edu/~anderson/cs545/notebooks/A3grader.tar), extract `A3grader.py` before running the following cell.
 
-# In[78]:
+# In[32]:
 
 
 get_ipython().run_line_magic('run', '-i A3grader.py')
