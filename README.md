@@ -30,7 +30,7 @@ conda env update --file environment.yml --prune
 
 conda env create -f environment.yml
 
-python -m ipykernel install --user --name=ml_assignments
+python -m ipykernel install --user --name=fp
 
 
 

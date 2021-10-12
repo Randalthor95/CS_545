@@ -1,11 +1,15 @@
+from collections import OrderedDict
+
 import torch
 import os
+from torch import nn
 from torch.utils.data import Dataset
-from torchvision import datasets
+from torchvision import datasets, transforms
 from torchvision.transforms import ToTensor
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+
 
 class FinalProjectEEGDataset(Dataset):
     """Face Landmarks dataset."""
@@ -39,3 +43,30 @@ class FinalProjectEEGDataset(Dataset):
             sample = self.transform(sample)
 
         return sample
+
+
+class NeuralNetwork(nn.Module):
+    def __init__(self, num_inputs, num_hidden_units_by_layers, num_outputs):
+        super(NeuralNetwork, self).__init__()
+        self.flatten = nn.Flatten()
+        od = OrderedDict([])
+        if num_hidden_units_by_layers:
+            for i in range(len(num_hidden_units_by_layers)):
+                if i == 0:
+                    print('i == 0')
+                    od['Linear0'] = nn.Linear(num_inputs, num_hidden_units_by_layers[0])
+                    od['ReLU0'] = nn.ReLU()
+                else:
+                    od['Linear' + str(i)] = nn.Linear(num_hidden_units_by_layers[i - 1], num_hidden_units_by_layers[i])
+                    od['ReLU' + str(i)] = nn.ReLU()
+            od['Linear' + str(len(num_hidden_units_by_layers))] = \
+                nn.Linear(num_hidden_units_by_layers[len(num_hidden_units_by_layers) - 1], num_outputs)
+        else:
+            od['Linear0'] = nn.Linear(num_inputs, num_outputs)
+
+        self.linear_relu_stack = nn.Sequential(od)
+
+    def forward(self, x):
+        x = self.flatten(x)
+        logits = self.linear_relu_stack(x)
+        return logits
