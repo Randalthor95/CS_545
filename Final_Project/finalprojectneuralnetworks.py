@@ -23,6 +23,7 @@ class FinalProjectEEGDataset(Dataset):
                 on a sample.
         """
         self.eeg_data = pd.read_csv(os.path.join(root_dir, csv_file), delimiter=',', usecols=range(15))
+        print(self.eeg_data.dtypes)
         self.root_dir = root_dir
         self.transform = transform
 
@@ -33,8 +34,8 @@ class FinalProjectEEGDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        open_or_closed = self.eeg_data.iloc[idx, 14]
-        channel_data = self.eeg_data.iloc[0, 0:14]
+        open_or_closed = self.eeg_data.iloc[idx, 14].astype('float')
+        channel_data = self.eeg_data.iloc[idx, 0:14]
         channel_data = np.array([channel_data])
         channel_data = channel_data.astype('float').reshape(-1, 14)
         sample = {'open_or_closed': open_or_closed, 'channel_data': channel_data}
@@ -42,7 +43,7 @@ class FinalProjectEEGDataset(Dataset):
         if self.transform:
             sample = self.transform(sample)
 
-        return sample
+        return channel_data, open_or_closed
 
 
 class NeuralNetwork(nn.Module):

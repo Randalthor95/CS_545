@@ -7,7 +7,7 @@ import sys  # for sys.float_info.epsilon
 
 ######################################################################
 # class Optimizers()
-######################################################################
+# #####################################################################
 
 
 class Optimizers():
@@ -18,146 +18,148 @@ class Optimizers():
         concatenated into a one-dimensional vector'''
       
         self.all_weights = all_weights
+        self.reset()
 
-        self.sgd_initialized = False
-        self.scg_initialized = False
-        self.adam_initialized = False
+    def reset(self):
+        self.n_updates = 0
+        self.initialized = True
+
+    def __str__(self):
+        s = self.__repr()
+
+    def __repr__(self):
+        return f'{type(self).__name__}({all_weights})'
+
+    def step(self):
+        print('step() required but not defined.')
+        
 
 ######################################################################
 # sgd
-######################################################################
+# #####################################################################
 
-    def sgd(self, error_f, gradient_f, fargs=[], n_epochs=100,
-            learning_rate=0.001, verbose=False, error_convert_f=None,
-            nesterov=False, callback_f=None):
-        '''
-        error_f: function that requires X and T as arguments (given in fargs)
-                 and returns mean squared error.
-        gradient_f: function that requires X and T as arguments (in fargs)
-                 and returns gradient of mean squared error
-                 with respect to each weight.
-        error_convert_f: function that converts the standardized error from
-            error_f to original T units.
-        '''
+class SGD(Optimizers):
 
-        if not self.sgd_initialized:
-            error_trace = []
-            self.momentum = 0.9
-            self.prev_update = 0
-            if nesterov:
-                self.all_weights_copy = np.zeros(self.all_weights.shape)
+    def __init__(self, all_weights):
+        self.nesterov_weights_copy = None
+        self.nesterov = False
+        super(SGD, self).__init__(all_weights)
 
-        epochs_per_print = n_epochs // 10
+    def reset(self):
+        super(SGD, self).reset()
+        self.momentum = 0.9
+        self.prev_update = 0
+        if self.nesterov:
+            self.all_weights_copy = np.zeros(self.all_weights.shape)
+        return self
 
-        for epoch in range(n_epochs):
+    def step(self, error_f, gradient_f, fargs=[],
+             learning_rate=0.001, verbose=True, error_convert_f=None,
+             momentum=0.1, nesterov=False):
 
-            error = error_f(*fargs)
-            grad = gradient_f(*fargs)
+        self.learning_rate = learning_rate
+        self.momentum = momentum
 
-            if not nesterov:
+        self.nesterov = nesterov
+        if self.nesterov and self.nesterov_weights_copy is None:
+            self.nesterov_weights_copy = np.zeros(self.all_weights.shape)
+
+        error = error_f(*fargs)
+        grad = gradient_f(*fargs)
+
+        if not self.nesterov:
               
-                self.prev_update = learning_rate * grad + self.momentum * self.prev_update
-                # Update all weights using -= to modify their values in-place.
-                self.all_weights -= self.prev_update
+            self.prev_update = self.learning_rate * grad + self.momentum * self.prev_update
+            # Update all weights using -= to modify their values in-place.
+            self.all_weights -= self.prev_update
 
-            else:
-                self.all_weights_copy[:] = self.all_weights
+        else:
+            self.nesterov_weights_copy[:] = self.all_weights
 
-                self.all_weights -= self.momentum * self.prev_update
-                error = error_f(*fargs)
-                grad = gradient_f(*fargs)
-                self.prev_update = learning_rate * grad + self.momentum * self.prev_update
-                self.all_weights[:] = self.all_weights_copy
-                self.all_weights -= self.prev_update
-                
-            if error_convert_f:
-                error = error_convert_f(error)
-            error_trace.append(error)
-
-            if callback_f is not None:
-                callback_f(epoch)
-
-            if verbose and ((epoch + 1) % max(1, epochs_per_print) == 0):
-                print(f'sgd: Epoch {epoch+1:d} ObjectiveF={error:.5f}')
-
-        return error_trace
-
-
-######################################################################
-#### adam
-######################################################################
-
-    def adam(self, error_f, gradient_f, fargs=[], n_epochs=100, learning_rate=0.001, verbose=True,
-             error_convert_f=None, callback_f=None):
-        '''
-        error_f: function that requires X and T as arguments (given in fargs) and returns mean squared error.
-        gradient_f: function that requires X and T as arguments (in fargs) and returns gradient of mean squared error
-                    with respect to each weight.
-        error_convert_f: function that converts the standardized error from error_f to original T units.
-        '''
-
-        if not self.adam_initialized:
-            shape = self.all_weights.shape
-            # with multiple subsets (batches) of training data.
-            self.mt = np.zeros(shape)
-            self.vt = np.zeros(shape)
-            self.sqrt = np.sqrt
-                
-            self.beta1 = 0.9
-            self.beta2 = 0.999
-            self.beta1t = 1
-            self.beta2t = 1
-            self.adam_initialized = True
-
-        alpha = learning_rate  # learning rate called alpha in original paper on adam
-        epsilon = 1e-8
-        error_trace = []
-        epochs_per_print = n_epochs // 10
-
-        for epoch in range(n_epochs):
-
+            self.all_weights -= self.momentum * self.prev_update
             error = error_f(*fargs)
             grad = gradient_f(*fargs)
+            self.prev_update = self.learning_rate * grad + self.momentum * self.prev_update
+            self.all_weights[:] = self.all_weights_copy
+            self.all_weights -= self.prev_update
+                
+        self.n_updates += 1
 
-            self.mt[:] = self.beta1 * self.mt + (1 - self.beta1) * grad
-            self.vt[:] = self.beta2 * self.vt + (1 - self.beta2) * grad * grad
-            self.beta1t *= self.beta1
-            self.beta2t *= self.beta2
+        return error # to get current error must call error_f one more time
 
-            m_hat = self.mt / (1 - self.beta1t)
-            v_hat = self.vt / (1 - self.beta2t)
-
-            # Update all weights using -= to modify their values in-place.
-            self.all_weights -= alpha * m_hat / (self.sqrt(v_hat) + epsilon)
-    
-            if error_convert_f:
-                error = error_convert_f(error)
-            error_trace.append(error)
-
-            if callback_f is not None:
-                callback_f(epoch)
-
-            if verbose and ((epoch + 1) % max(1, epochs_per_print) == 0):
-                print(f'Adam: Epoch {epoch+1:d}  qF={error:.5f}')
-
-        return error_trace
 
 ######################################################################
-#### scg
+# ### adam
+# #####################################################################
+
+class Adam(Optimizers):
+
+    def __init__(self, all_weights):
+        super(Adam, self).__init__(all_weights)
+
+    def reset(self):
+        super(Adam, self).reset()
+        shape = self.all_weights.shape
+        # with multiple subsets (batches) of training data.
+        self.mt = np.zeros(shape)
+        self.vt = np.zeros(shape)
+        self.sqrt = np.sqrt
+
+        self.beta1 = 0.9
+        self.beta2 = 0.999
+        self.beta1t = 1
+        self.beta2t = 1
+
+        return self
+
+    def step(self, error_f, gradient_f, fargs=[],
+             learning_rate=0.001, verbose=True, error_convert_f=None,
+             momentum=0.1, nesterov=False):
+
+        self.learning_rate = learning_rate
+        epsilon = 1e-8
+
+        error = error_f(*fargs)
+        grad = gradient_f(*fargs)
+
+        self.mt[:] = self.beta1 * self.mt + (1 - self.beta1) * grad
+        self.vt[:] = self.beta2 * self.vt + (1 - self.beta2) * grad * grad
+        self.beta1t *= self.beta1
+        self.beta2t *= self.beta2
+
+        m_hat = self.mt / (1 - self.beta1t)
+        v_hat = self.vt / (1 - self.beta2t)
+
+        # Update all weights using -= to modify their values in-place.
+        self.all_weights -= self.learning_rate * m_hat / (self.sqrt(v_hat) + epsilon)
+                
+        self.n_updates += 1
+
+        return error # to get current error must call error_f one more time
+
+
 ######################################################################
+# ### scg
+# #####################################################################
 
-    def scg(self, error_f, gradient_f, fargs=[], n_epochs=100, error_convert_f=lambda x: x,
-            verbose=True, callback_f=None):
+class SCG(Optimizers):
 
-        if not self.scg_initialized:
-            shape = self.all_weights.shape
-            self.w_new = np.zeros(shape)
-            self.w_temp = np.zeros(shape)
-            self.g_new = np.zeros(shape)
-            self.g_old = np.zeros(shape)
-            self.g_smallstep = np.zeros(shape)
-            self.search_dir = np.zeros(shape)
-            self.scg_initialized = True
+    def __init__(self, all_weights):
+        super(SCG, self).__init__(all_weights)
+
+    def reset(self):
+        super(SCG, self).reset()
+        shape = self.all_weights.shape
+        self.w_new = np.zeros(shape)
+        self.w_temp = np.zeros(shape)
+        self.g_new = np.zeros(shape)
+        self.g_old = np.zeros(shape)
+        self.g_smallstep = np.zeros(shape)
+        self.search_dir = np.zeros(shape)
+
+        return self
+
+    def step(self, error_f, gradient_f, fargs=[]):
 
         sigma0 = 1.0e-6
         fold = error_f(*fargs)
@@ -171,13 +173,6 @@ class Optimizers():
         betamin = 1.0e-15 			# Lower bound on scale.
         betamax = 1.0e20			# Upper bound on scale.
         nvars = len(self.all_weights)
-        iteration = 1				# j counts number of iterations
-        error_trace = []
-
-        error_trace.append(error_convert_f(error))
-
-        startTime = time.time()
-        startTimeLastVerbose = startTime
 
         # Main optimization loop.
         while iteration <= n_epochs:
