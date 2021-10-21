@@ -46,7 +46,7 @@ export PYTHONPATH="/usr/local/anaconda3/latest/lib/python3.8/site-packages:$PYTH
 cd CS_545
 conda activate ml
 
-jupyter-notebook --no-browser --port=8080 > cmd_output.txt
+jupyter-notebookSomething --no-browser --port=8080 > cmd_output.txt
 
 ssh -N -L 8080:localhost:8080 acf003@bentley.cs.colostate.edu
 
