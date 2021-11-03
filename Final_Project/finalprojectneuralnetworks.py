@@ -3,6 +3,7 @@ from collections import OrderedDict
 import torch
 import os
 from torch import nn
+import torch.nn.functional as F
 from torch.utils.data import Dataset
 from torchvision import datasets, transforms
 from torchvision.transforms import ToTensor
@@ -71,3 +72,68 @@ class NeuralNetwork(nn.Module):
         x = self.flatten(x)
         logits = self.linear_relu_stack(x)
         return logits
+
+
+class CNN(nn.Module):
+    def __init__(self, num_inputs, num_hiddens_per_conv_layer, num_hiddens_per_fc_layer, num_outputs,
+                 patch_size_per_conv_layer, stride_per_conv_layer):
+        super(CNN, self).__init__()
+        n_conv_layers = len(num_hiddens_per_conv_layer)
+        if (
+                len(patch_size_per_conv_layer) != n_conv_layers
+                or len(stride_per_conv_layer) != n_conv_layers
+        ):
+            raise Exception(
+                "The lengths of num_hiddens_per_conv_layer, patch_size_per_conv_layer, and stride_per_conv_layer must "
+                "be equal. "
+            )
+
+        self.flatten = nn.Flatten()
+        self.odc = OrderedDict([])
+        if num_hiddens_per_conv_layer:
+            for i in range(len(num_hiddens_per_conv_layer)):
+                if i == 0:
+                    print('i == 0')
+                    self.odc['Conv1d0'] = nn.Conv1d(num_inputs, num_hiddens_per_conv_layer[0],
+                                                    kernel_size=patch_size_per_conv_layer[0],
+                                                    stride=stride_per_conv_layer[0])
+                    # self.odc['ReLU0'] = nn.ReLU()
+                else:
+                    self.odc['Conv1d' + str(i)] = nn.Conv1d(num_hiddens_per_conv_layer[i - 1],
+                                                            num_hiddens_per_conv_layer[i],
+                                                            kernel_size=patch_size_per_conv_layer[i],
+                                                            stride=stride_per_conv_layer[i])
+                    # self.odc['ReLU' + str(i)] = nn.ReLU()
+
+        self.od = OrderedDict([])
+        if num_hiddens_per_fc_layer:
+            for i in range(len(num_hiddens_per_fc_layer)):
+                if i == 0:
+                    print('i == 0')
+                    self.od['Linear0'] = nn.Linear(num_hiddens_per_conv_layer[len(num_hiddens_per_conv_layer)-1], num_hiddens_per_fc_layer[0])
+                    # self.od['ReLU0'] = nn.ReLU()
+                else:
+                    self.od['Linear' + str(i)] = nn.Linear(num_hiddens_per_fc_layer[i - 1], num_hiddens_per_fc_layer[i])
+                    # self.od['ReLU' + str(i)] = nn.ReLU()
+            self.od['Linear' + str(len(num_hiddens_per_fc_layer))] = \
+                nn.Linear(num_hiddens_per_fc_layer[len(num_hiddens_per_fc_layer) - 1], num_outputs)
+        else:
+            self.od['Linear0'] = nn.Linear(num_inputs, num_outputs)
+
+        # self.conv1d_linear_relu_stack = nn.Sequential(od)
+
+    def forward(self, x):
+        x = x.unsqueeze(dim=0)
+        for conv_layer in self.odc:
+            print(self.odc[conv_layer])
+            x = F.relu(self.odc[conv_layer](x))
+
+        # x = torch.flatten(x, 1)  # flatten all dimensions except batch
+        x = x.squeeze()
+        for i, layer in enumerate(self.od):
+            if i == len(self.od) - 1:
+                x = self.od[layer](x)
+            else:
+                x = F.relu(self.od[layer](x))
+
+        return x

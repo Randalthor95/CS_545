@@ -11,13 +11,13 @@ conda activate fp
 jupyter lab
 
 D:
-cd D:\College\CS_545\Lessons
-conda activate ml
+cd D:\College\CS_545\Final_Project
+conda activate fp
 jupyter lab
 
 D:
-cd D:\College\CS_545\Final_Project
-conda activate fp
+cd D:\College\CS_545\Lessons
+conda activate ml
 jupyter lab
 
 cd C:\Users\saras\Documents\Tony\CS_545\Assignments
@@ -48,7 +48,7 @@ export PYTHONPATH="/usr/local/anaconda3/latest/lib/python3.8/site-packages:$PYTH
 cd CS_545
 conda activate ml
 
-jupyter-notebookSomething --no-browser --port=8080 > cmd_output.txt
+jupyter-lab Final_Project.ipynb --no-browser --port=8080
 
 ssh -N -L 8080:localhost:8080 acf003@bentley.cs.colostate.edu
 
