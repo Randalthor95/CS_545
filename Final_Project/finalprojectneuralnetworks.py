@@ -49,29 +49,41 @@ class FinalProjectEEGDataset(Dataset):
 
 
 class NeuralNetwork(nn.Module):
-    def __init__(self, num_inputs, num_hidden_units_by_layers, num_outputs):
+    def __init__(self, num_inputs, num_hidden_units_by_layers, num_outputs, activation_function='relu'):
         super(NeuralNetwork, self).__init__()
         self.flatten = nn.Flatten()
         od = OrderedDict([])
         if num_hidden_units_by_layers:
             for i in range(len(num_hidden_units_by_layers)):
                 if i == 0:
-                    print('i == 0')
                     od['Linear0'] = nn.Linear(num_inputs, num_hidden_units_by_layers[0])
-                    od['ReLU0'] = nn.ReLU()
+                    if activation_function == 'sigmoid':
+                        od['Sigmoid0'] = nn.Sigmoid()
+                    elif activation_function == 'tanh':
+                        od['Tanh0'] = nn.Tanh()
+                    else:
+                        od['ReLU0'] = nn.ReLU()
+
+            else:
+                od['Linear' + str(i)] = nn.Linear(num_hidden_units_by_layers[i - 1], num_hidden_units_by_layers[i])
+
+                if activation_function == 'sigmoid':
+                    od['Sigmoid' + str(i)] = nn.Sigmoid()
+                elif activation_function == 'tanh':
+                    od['Tanh' + str(i)] = nn.Tanh()
                 else:
-                    od['Linear' + str(i)] = nn.Linear(num_hidden_units_by_layers[i - 1], num_hidden_units_by_layers[i])
                     od['ReLU' + str(i)] = nn.ReLU()
             od['Linear' + str(len(num_hidden_units_by_layers))] = \
                 nn.Linear(num_hidden_units_by_layers[len(num_hidden_units_by_layers) - 1], num_outputs)
+
         else:
             od['Linear0'] = nn.Linear(num_inputs, num_outputs)
 
-        self.linear_relu_stack = nn.Sequential(od)
+        self.linear_stack = nn.Sequential(od)
 
     def forward(self, x):
         x = self.flatten(x)
-        logits = self.linear_relu_stack(x)
+        logits = self.linear_stack(x)
         return logits
 
 
@@ -131,7 +143,7 @@ class CNN(nn.Module):
         # else:
         #     self.od['Linear0'] = nn.Linear(num_inputs, num_outputs)
 
-        # self.conv1d_linear_relu_stack = nn.Sequential(od)
+        # self.conv1d_linear_stack = nn.Sequential(od)
 
     def forward(self, x):
         x_shape_zero = x.shape[0]
