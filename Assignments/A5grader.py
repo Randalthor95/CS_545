@@ -139,6 +139,13 @@ print('''
 ===========================================================================================
 Testing
 
+    marble = Marble_Variable_Goal((-2, -1, 0, 1, 2))
+    s = []
+    for i in range(10):
+        s.append(marble.initial_state()[2])
+
+
+    if len(np.unique(s)) > 1:
     np.random.seed(42)
 
     marble = Marble_Variable_Goal((-2, -1, 0, 1, 2))
@@ -153,25 +160,17 @@ try:
 
     pts = 20
 
-    np.random.seed(41)
-
     marble = Marble_Variable_Goal((-2, -1, 0, 1, 2))
-    s = marble.initial_state()
-    s = marble.next_state(s, 2)
-    goal = s[2]
-    s2 = marble.initial_state()
-    goal2 = s2[2]
+    s = []
+    for i in range(10):
+        s.append(marble.initial_state()[2])
 
-    print(marble.initial_state())
-    print(marble.initial_state())
-    print(marble.initial_state())
-    print(marble.initial_state())
-    
-    if goal != goal2:
+    n_unique = len(np.unique(s))
+    if n_unique > 1:
         exec_grade += pts
         print('\n--- ', pts, '/', pts, 'points. initial_state correctly assigns the goal randomly..')
     else:
-        print('\n---  0 /', pts, 'points. initial_state incorrectly does not change the goal..')
+        print('\n---  0 /', pts, 'points. initial_state incorrectly does not change the goal.')
         
 
 except Exception as ex:
