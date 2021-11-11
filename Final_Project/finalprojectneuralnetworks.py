@@ -64,15 +64,15 @@ class NeuralNetwork(nn.Module):
                     else:
                         od['ReLU0'] = nn.ReLU()
 
-            else:
-                od['Linear' + str(i)] = nn.Linear(num_hidden_units_by_layers[i - 1], num_hidden_units_by_layers[i])
-
-                if activation_function == 'sigmoid':
-                    od['Sigmoid' + str(i)] = nn.Sigmoid()
-                elif activation_function == 'tanh':
-                    od['Tanh' + str(i)] = nn.Tanh()
                 else:
-                    od['ReLU' + str(i)] = nn.ReLU()
+                    od['Linear' + str(i)] = nn.Linear(num_hidden_units_by_layers[i - 1], num_hidden_units_by_layers[i])
+
+                    if activation_function == 'sigmoid':
+                        od['Sigmoid' + str(i)] = nn.Sigmoid()
+                    elif activation_function == 'tanh':
+                        od['Tanh' + str(i)] = nn.Tanh()
+                    else:
+                        od['ReLU' + str(i)] = nn.ReLU()
             od['Linear' + str(len(num_hidden_units_by_layers))] = \
                 nn.Linear(num_hidden_units_by_layers[len(num_hidden_units_by_layers) - 1], num_outputs)
 
