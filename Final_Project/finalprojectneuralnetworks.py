@@ -71,6 +71,8 @@ class NeuralNetwork(nn.Module):
                         od['Sigmoid' + str(i)] = nn.Sigmoid()
                     elif activation_function == 'tanh':
                         od['Tanh' + str(i)] = nn.Tanh()
+                    elif activation_function == 'softplus':
+                        od['Softplus' + str(i)] = nn.Softplus()
                     else:
                         od['ReLU' + str(i)] = nn.ReLU()
             od['Linear' + str(len(num_hidden_units_by_layers))] = \
