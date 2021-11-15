@@ -25,7 +25,6 @@ class FinalProjectEEGDataset(Dataset):
         """
         self.labels = pd.read_csv(os.path.join(root_dir, csv_file), delimiter=',', nrows=1)
         self.eeg_data = pd.read_csv(os.path.join(root_dir, csv_file), delimiter=',', usecols=range(self.labels.size))
-        print(self.eeg_data.dtypes)
         self.root_dir = root_dir
         self.transform = transform
 
@@ -90,10 +89,11 @@ class NeuralNetwork(nn.Module):
 
 
 class CNN(nn.Module):
-    def __init__(self, num_inputs, num_hiddens_per_conv_layer, num_hiddens_per_fc_layer, num_outputs,
+    def __init__(self, num_channels, num_inputs, num_hiddens_per_conv_layer, num_hiddens_per_fc_layer, num_outputs,
                  kernel_size_per_conv_layer, stride_per_conv_layer):
         super(CNN, self).__init__()
         n_conv_layers = len(num_hiddens_per_conv_layer)
+        self.num_inputs = num_inputs
         if (
                 len(kernel_size_per_conv_layer) != n_conv_layers
                 or len(stride_per_conv_layer) != n_conv_layers
@@ -105,15 +105,25 @@ class CNN(nn.Module):
 
         # self.flatten = nn.Flatten()
         self.odc = OrderedDict([])
+        self.fcod = OrderedDict([])
         if num_hiddens_per_conv_layer:
             for i in range(len(num_hiddens_per_conv_layer)):
+                print("i: ", i)
                 if i == 0:
-                    print('i == 0')
                     self.odc['Conv1d0'] = nn.Sequential(
-                        nn.Conv1d(num_inputs, num_hiddens_per_conv_layer[0],
+                        nn.Conv1d(num_channels, num_hiddens_per_conv_layer[0],
                                   kernel_size=kernel_size_per_conv_layer[0],
                                   stride=stride_per_conv_layer[0]),
-                        nn.BatchNorm1d(num_hiddens_per_conv_layer[0]),
+                        nn.ReLU())
+                    liner_input = (num_inputs - (kernel_size_per_conv_layer[len(kernel_size_per_conv_layer) - 1] - 1)
+                                   * len(num_hiddens_per_conv_layer)) * num_outputs
+                    print(num_inputs)
+                    print(kernel_size_per_conv_layer[len(kernel_size_per_conv_layer) - 1] - 1)
+                    print(len(num_hiddens_per_conv_layer))
+                    print(num_outputs)
+                    print("liner_input: ", liner_input)
+                    self.fcod['Linear0'] = nn.Sequential(
+                        nn.Linear(liner_input, num_hiddens_per_fc_layer[0]),
                         nn.ReLU())
                     # self.odc['ReLU0'] = nn.ReLU()
                 else:
@@ -122,13 +132,14 @@ class CNN(nn.Module):
                                   num_hiddens_per_conv_layer[i],
                                   kernel_size=kernel_size_per_conv_layer[i],
                                   stride=stride_per_conv_layer[i]),
-                        nn.BatchNorm1d(num_hiddens_per_conv_layer[i]),
                         nn.ReLU())
-
-                self.fc = nn.Linear(num_hiddens_per_conv_layer[len(num_hiddens_per_conv_layer) - 1], num_outputs)
-                self.activation = nn.Sigmoid()
-
-                # self.odc['ReLU' + str(i)] = nn.ReLU()
+                    self.fcod['Linear' + str(i)] = nn.Sequential(
+                        nn.Linear(num_hiddens_per_fc_layer[i - 1],
+                                  num_hiddens_per_fc_layer[i]),
+                        nn.ReLU())
+            self.last_layer = nn.Linear(num_hiddens_per_fc_layer[len(num_hiddens_per_fc_layer) - 1],
+                                        num_outputs)
+            # self.odc['ReLU' + str(i)] = nn.ReLU()
 
         # self.od = OrderedDict([])
         # if num_hiddens_per_fc_layer:
@@ -148,17 +159,19 @@ class CNN(nn.Module):
         # self.conv1d_linear_stack = nn.Sequential(od)
 
     def forward(self, x):
-        x_shape_zero = x.shape[0]
-        x = x.view(x_shape_zero, 14, -1)
-        print(x.size())
-        # x : 23 x 1 x 59049
-        for conv_layer in self.odc:
-            print(self.odc[conv_layer])
-            x = self.odc[conv_layer](x)
-            print(x.size())
 
-        out = x.view(x_shape_zero, x.size(1) * x.size(2))
-        logit = self.fc(out)
+        for conv_layer in self.odc:
+            print("x.shape1: ", x.shape)
+            print("self.odc[conv_layer]: ", self.odc[conv_layer])
+            x = self.odc[conv_layer](x)
+        print("x.shape2: ", x.shape)
+        # out = x.view(x_shape_zero, x.size(1))
+        x = torch.flatten(x, 1)  # flatten all dimensions except batch
+        for linear_layer in self.fcod:
+            print("x.shape1: ", x.shape)
+            print("self.fcod[conv_layer]: ", self.fcod[linear_layer])
+            x = self.fcod[linear_layer](x)
+        logit = self.last_layer(x)
         return logit
         # x = x.unsqueeze(dim=0)
         # for conv_layer in self.odc:
