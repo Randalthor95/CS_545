@@ -115,12 +115,27 @@ class CNN(nn.Module):
                                   kernel_size=kernel_size_per_conv_layer[0],
                                   stride=stride_per_conv_layer[0]),
                         nn.ReLU())
-                    liner_input = (num_inputs - (kernel_size_per_conv_layer[len(kernel_size_per_conv_layer) - 1] - 1)
-                                   * len(num_hiddens_per_conv_layer)) * num_outputs
-                    print(num_inputs)
+                    liner_input = ((num_inputs - (kernel_size_per_conv_layer[len(kernel_size_per_conv_layer) - 1] - 1)
+                                    * len(num_hiddens_per_conv_layer)) // (stride_per_conv_layer[i])) * \
+                                  num_hiddens_per_conv_layer[
+                                      len(num_hiddens_per_conv_layer) - 1]
+                    sum = 0
+                    for i in range(len(kernel_size_per_conv_layer) - 1):
+                        print("i: ", i)
+                        print("stride_per_conv_layer:", stride_per_conv_layer[i])
+                        print(((kernel_size_per_conv_layer[i] - kernel_size_per_conv_layer[
+                            len(kernel_size_per_conv_layer) - 1]) // (stride_per_conv_layer[i])) \
+                              * num_hiddens_per_conv_layer[len(num_hiddens_per_conv_layer) - 1])
+                        sum += ((kernel_size_per_conv_layer[i] - kernel_size_per_conv_layer[
+                            len(kernel_size_per_conv_layer) - 1]) // (stride_per_conv_layer[i])) \
+                               * num_hiddens_per_conv_layer[len(num_hiddens_per_conv_layer) - 1]
+                    liner_input -= sum
+                    print("num_inputs", num_inputs)
                     print(kernel_size_per_conv_layer[len(kernel_size_per_conv_layer) - 1] - 1)
                     print(len(num_hiddens_per_conv_layer))
-                    print(num_outputs)
+                    print(num_hiddens_per_conv_layer[
+                              len(num_hiddens_per_conv_layer) - 1])
+                    print(sum)
                     print("liner_input: ", liner_input)
                     self.fcod['Linear0'] = nn.Sequential(
                         nn.Linear(liner_input, num_hiddens_per_fc_layer[0]),
