@@ -104,11 +104,9 @@ class CNN(nn.Module):
             )
 
         if activation_function == "tanh":
-            self.activation_function = torch.nn.Tanh
-        elif activation_function == "softplus":
-            self.activation_function = torch.nn.Softplus
+            self.activation_function = torch.tanh
         else:
-            self.activation_function = torch.nn.ReLU
+            self.activation_function = torch.relu
 
         # Create all convolutional layers
         # First argument to first Conv2d is number of channels for each pixel.
@@ -232,13 +230,14 @@ class CNN(nn.Module):
 
     def forward(self, x):
         for conv_layer in self.conv_layers:
-            x = conv_layer(x)
+            x = self.activation_function(conv_layer(x))
 
         x = torch.flatten(x, 1)  # flatten all dimensions except batch
+
         for i, fc_layer in enumerate(self.fc_layers):
             if i == len(self.fc_layers) - 1:
                 break
-            x = fc_layer(x)
+            x = self.activation_function(fc_layer(x))
 
         x = self.fc_layers[-1](x)
         return x
